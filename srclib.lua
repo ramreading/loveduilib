@@ -333,7 +333,7 @@ function Library:CreateWindow(cfg)
 	MoonBtn.Activated:Connect(function()
 		local copied = copyToClipboard(PROFILE_LINK)
 		Library:Notify({
-			Title = "Profile Link",
+			Title = "robloxscripts Link",
 			Content = copied and "Profile link copied to clipboard!" or "Clipboard unavailable: " .. PROFILE_LINK,
 			Duration = 3,
 		})
