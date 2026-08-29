@@ -1,3 +1,5 @@
+-- based on vaehz lib
+
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
