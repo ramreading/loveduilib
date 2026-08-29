@@ -307,6 +307,37 @@ function Library:CreateWindow(cfg)
 
 	local CloseBtn = ctrlBtn("x", -10, Color3.fromRGB(255, 90, 90))
 	local MinBtn   = ctrlBtn("minus", -42, Theme.Text)
+	
+	local MoonBtn = create("TextButton", {
+		Text = "", AutoButtonColor = false, BackgroundColor3 = Theme.Element,
+		BackgroundTransparency = 1, AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.new(1, -74, 0.5, 0), Size = UDim2.fromOffset(26, 26),
+		Parent = TopBar,
+	})
+	corner(MoonBtn, 6)
+	local moonIcon = icon("moon", 16, false, Theme.SubText)
+	moonIcon.AnchorPoint = Vector2.new(0.5, 0.5)
+	moonIcon.Position = UDim2.new(0.5, 0, 0.5, 0)
+	moonIcon.Parent = MoonBtn
+	
+	MoonBtn.MouseEnter:Connect(function()
+		tween(MoonBtn, TI, { BackgroundTransparency = 0 })
+		tween(moonIcon, TI, { TextColor3 = Color3.fromRGB(200, 200, 255) })
+	end)
+	MoonBtn.MouseLeave:Connect(function()
+		tween(MoonBtn, TI, { BackgroundTransparency = 1 })
+		tween(moonIcon, TI, { TextColor3 = Theme.SubText })
+	end)
+	
+	local PROFILE_LINK = "https://robloxscripts.com/user/ramread"
+	MoonBtn.Activated:Connect(function()
+		local copied = copyToClipboard(PROFILE_LINK)
+		Library:Notify({
+			Title = "Profile Link",
+			Content = copied and "Profile link copied to clipboard!" or "Clipboard unavailable: " .. PROFILE_LINK,
+			Duration = 3,
+		})
+	end)
 
 	local Body = create("Frame", {
 		Name = "Body", BackgroundTransparency = 1,
