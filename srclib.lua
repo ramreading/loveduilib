@@ -3,14 +3,10 @@ local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local HttpService = game:GetService("HttpService")
 
--- Executor globals (names differ between executors) -----------------
 local setClipboard = setclipboard or toclipboard or writeclipboard or write_clipboard
 	or (syn and syn.write_clipboard) or (Clipboard and Clipboard.set)
 local httpRequest = (syn and syn.request) or (http and http.request) or http_request or request
 
-----------------------------------------------------------------------
--- Theme
-----------------------------------------------------------------------
 local Theme = {
 	Background = Color3.fromRGB(16, 16, 16),
 	Secondary  = Color3.fromRGB(27, 27, 27),
@@ -31,11 +27,8 @@ local FONT_MAIN  = Font.new("rbxasset://fonts/families/Jura.json", Enum.FontWeig
 local TI    = TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 local TI_S  = TweenInfo.new(0.25, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
 
-local STROKE_T = 0.83 -- matches the TopBar stroke
+local STROKE_T = 0.83
 
-----------------------------------------------------------------------
--- Helpers
-----------------------------------------------------------------------
 local function create(class, props, children)
 	local inst = Instance.new(class)
 	for k, v in props do
@@ -61,7 +54,6 @@ local function stroke(parent, color, trans, thick)
 	})
 end
 
--- UIShadow is a beta instance; guard so the lib never hard-errors if it's absent
 local function addShadow(parent, blur, trans)
 	local ok, shadow = pcall(function()
 		return create("UIShadow", {
@@ -90,7 +82,6 @@ local function icon(name, size, filled, color)
 	})
 end
 
--- Draggable window via a handle
 local function makeDraggable(frame, handle)
 	local dragging, dragInput, startPos, startFramePos
 	handle.InputBegan:Connect(function(inp)
@@ -118,7 +109,6 @@ local function makeDraggable(frame, handle)
 	end)
 end
 
--- Normalized drag region (sliders / color squares). Supports mouse + touch.
 local function bindDrag(region, onUpdate)
 	local dragging = false
 	local function upd(inp)
@@ -152,32 +142,11 @@ local function getGuiParent()
 	return ok and cg or game:GetService("CoreGui")
 end
 
--- Copy a string to clipboard. Returns whether a clipboard fn was available.
 local function copyToClipboard(str)
 	if not setClipboard then return false end
 	return pcall(setClipboard, str)
 end
 
--- Ask the local Discord app (RPC on :6463) to open an invite. Returns success.
-local function openDiscordInvite(code)
-	if not httpRequest then return false end
-	return pcall(function()
-		httpRequest({
-			Url = "http://127.0.0.1:6463/rpc?v=1",
-			Method = "POST",
-			Headers = { ["Content-Type"] = "application/json", Origin = "https://discord.com" },
-			Body = HttpService:JSONEncode({
-				cmd = "INVITE_BROWSER",
-				nonce = HttpService:GenerateGUID(false),
-				args = { code = code },
-			}),
-		})
-	end)
-end
-
-----------------------------------------------------------------------
--- Library root
-----------------------------------------------------------------------
 local Library = {}
 Library.__index = Library
 
@@ -191,7 +160,6 @@ local ScreenGui = create("ScreenGui", {
 pcall(function() if syn and syn.protect_gui then syn.protect_gui(ScreenGui) end end)
 ScreenGui.Parent = getGuiParent()
 
--- Notification stack (bottom-right)
 local NotifHolder = create("Frame", {
 	Name = "Notifications",
 	BackgroundTransparency = 1,
@@ -255,7 +223,6 @@ function Library:Notify(cfg)
 		})
 	end
 
-	-- slide + fade in
 	card.Position = UDim2.new(0, 26, 0, 0)
 	tween(card, TI_S, { BackgroundTransparency = 0, Position = UDim2.new(0, 0, 0, 0) })
 	tween(st, TI_S, { Transparency = STROKE_T })
@@ -274,9 +241,6 @@ function Library:Notify(cfg)
 	end)
 end
 
-----------------------------------------------------------------------
--- Window
-----------------------------------------------------------------------
 function Library:CreateWindow(cfg)
 	cfg = cfg or {}
 	if cfg.Accent then Theme.Accent = cfg.Accent end
@@ -297,7 +261,6 @@ function Library:CreateWindow(cfg)
 	stroke(BG, Theme.Stroke, 0.5)
 	addShadow(BG, 20, 0.5)
 
-	-- Top bar
 	local TopBar = create("Frame", {
 		Name = "TopBar",
 		BackgroundColor3 = Theme.Secondary,
@@ -344,16 +307,13 @@ function Library:CreateWindow(cfg)
 
 	local CloseBtn = ctrlBtn("x", -10, Color3.fromRGB(255, 90, 90))
 	local MinBtn   = ctrlBtn("minus", -42, Theme.Text)
-	-- Removed YouTube and Discord buttons
 
-	-- Body
 	local Body = create("Frame", {
 		Name = "Body", BackgroundTransparency = 1,
 		Position = UDim2.new(0, 0, 0, 45), Size = UDim2.new(1, 0, 1, -45),
 		Parent = BG,
 	})
 
-	-- Tab list (left)
 	local TabList = create("ScrollingFrame", {
 		Name = "TabList", BackgroundColor3 = Theme.Secondary, BackgroundTransparency = 0.2,
 		BorderSizePixel = 0, Size = UDim2.new(0, 140, 1, 0),
@@ -365,14 +325,12 @@ function Library:CreateWindow(cfg)
 		create("UIPadding", { PaddingTop = UDim.new(0, 8), PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 8) }),
 	})
 
-	-- Content (right)
 	local Content = create("Frame", {
 		Name = "Content", BackgroundTransparency = 1,
 		Position = UDim2.new(0, 141, 0, 0), Size = UDim2.new(1, -141, 1, 0),
 		Parent = Body,
 	})
 
-	-- Divider between sidebar and content
 	create("Frame", {
 		Name = "SideDivider", BackgroundColor3 = Theme.Stroke, BackgroundTransparency = STROKE_T,
 		BorderSizePixel = 0, Position = UDim2.new(0, 140, 0, 0), Size = UDim2.new(0, 1, 1, 0),
@@ -381,7 +339,6 @@ function Library:CreateWindow(cfg)
 
 	makeDraggable(BG, TopBar)
 
-	-- Close / minimize
 	CloseBtn.Activated:Connect(function()
 		tween(BG, TI, { GroupTransparency = 1, Size = UDim2.fromOffset(BG.AbsoluteSize.X, 0) })
 		task.wait(0.18); ScreenGui:Destroy()
@@ -399,7 +356,6 @@ function Library:CreateWindow(cfg)
 		end
 	end)
 
-	-- Toggle visibility keybind (desktop)
 	local hidden = false
 	UserInputService.InputBegan:Connect(function(inp, gp)
 		if gp then return end
@@ -409,9 +365,6 @@ function Library:CreateWindow(cfg)
 		end
 	end)
 
-	----------------------------------------------------------------
-	-- Tabs
-	----------------------------------------------------------------
 	function Window:CreateTab(tcfg)
 		tcfg = tcfg or {}
 		local Tab = { _order = 0 }
@@ -485,7 +438,6 @@ function Library:CreateWindow(cfg)
 		table.insert(Window.Tabs, Tab)
 		if #Window.Tabs == 1 then select() end
 
-		-- shared row factory
 		local function newRow(height)
 			Tab._order += 1
 			local row = create("Frame", {
@@ -497,9 +449,6 @@ function Library:CreateWindow(cfg)
 			return row
 		end
 
-		------------------------------------------------------------
-		-- 1. Label
-		------------------------------------------------------------
 		function Tab:CreateLabel(text)
 			Tab._order += 1
 			local row = create("Frame", {
@@ -518,15 +467,11 @@ function Library:CreateWindow(cfg)
 			return { Set = function(_, t) lbl.Text = t end, Instance = row }
 		end
 
-		------------------------------------------------------------
-		-- 2. Warning
-		------------------------------------------------------------
 		function Tab:CreateWarning(text)
 			local row = newRow(0)
 			row.AutomaticSize = Enum.AutomaticSize.Y
 			row.BackgroundColor3 = Color3.fromRGB(40, 34, 20)
 			for _, s in row:GetChildren() do if s:IsA("UIStroke") then s.Color = Theme.Warning; s.Transparency = 0.5 end end
-			-- equal top/bottom padding => single-line text sits centered against the icon
 			create("UIPadding", {
 				PaddingTop = UDim.new(0, 9), PaddingBottom = UDim.new(0, 9),
 				PaddingLeft = UDim.new(0, 10), PaddingRight = UDim.new(0, 10), Parent = row,
@@ -545,9 +490,6 @@ function Library:CreateWindow(cfg)
 			return { Set = function(_, t) lbl.Text = t end, Instance = row }
 		end
 
-		------------------------------------------------------------
-		-- 3. Button
-		------------------------------------------------------------
 		function Tab:CreateButton(bcfg)
 			bcfg = bcfg or {}
 			Tab._order += 1
@@ -571,9 +513,6 @@ function Library:CreateWindow(cfg)
 			return { Instance = btnEl }
 		end
 
-		------------------------------------------------------------
-		-- 4. Toggle
-		------------------------------------------------------------
 		function Tab:CreateToggle(tocfg)
 			tocfg = tocfg or {}
 			local state = tocfg.Default or false
@@ -612,9 +551,6 @@ function Library:CreateWindow(cfg)
 			return api
 		end
 
-		------------------------------------------------------------
-		-- 5. Stat / Status
-		------------------------------------------------------------
 		function Tab:CreateStat(scfg)
 			scfg = scfg or {}
 			local row = newRow(34)
@@ -634,9 +570,6 @@ function Library:CreateWindow(cfg)
 			return { Set = function(_, v) valLbl.Text = tostring(v) end, Instance = row }
 		end
 
-		------------------------------------------------------------
-		-- 6. Slider
-		------------------------------------------------------------
 		function Tab:CreateSlider(slcfg)
 			slcfg = slcfg or {}
 			local min, max = slcfg.Min or 0, slcfg.Max or 100
@@ -691,9 +624,6 @@ function Library:CreateWindow(cfg)
 			return api
 		end
 
-		------------------------------------------------------------
-		-- 7. Textbox
-		------------------------------------------------------------
 		function Tab:CreateTextbox(txcfg)
 			txcfg = txcfg or {}
 			local row = newRow(36)
@@ -703,7 +633,6 @@ function Library:CreateWindow(cfg)
 				TextXAlignment = Enum.TextXAlignment.Left, AnchorPoint = Vector2.new(0, 0.5),
 				Position = UDim2.new(0, 10, 0.5, 0), Size = UDim2.new(0.4, -10, 1, 0), Parent = row,
 			})
-			-- wrapper hugs the textbox; textbox grows with text but is clamped so it can't overlap the label
 			local boxWrap = create("Frame", {
 				BackgroundColor3 = Theme.Secondary, AnchorPoint = Vector2.new(1, 0.5),
 				Position = UDim2.new(1, -8, 0.5, 0), Size = UDim2.new(0, 0, 0, 24),
@@ -738,9 +667,6 @@ function Library:CreateWindow(cfg)
 			}
 		end
 
-		------------------------------------------------------------
-		-- 8. Color Picker (inline HSV, expands the row)
-		------------------------------------------------------------
 		function Tab:CreateColorPicker(ccfg)
 			ccfg = ccfg or {}
 			local color = ccfg.Default or Color3.fromRGB(255, 0, 0)
@@ -768,7 +694,6 @@ function Library:CreateWindow(cfg)
 			})
 			create("UIPadding", { PaddingLeft = UDim.new(0, 10), PaddingRight = UDim.new(0, 10), PaddingBottom = UDim.new(0, 10), Parent = body })
 
-			-- SV square
 			local sv = create("Frame", {
 				BackgroundColor3 = Color3.fromHSV(h, 1, 1), Size = UDim2.new(1, -34, 1, 0),
 				BorderSizePixel = 0, Parent = body,
@@ -789,7 +714,6 @@ function Library:CreateWindow(cfg)
 			})
 			corner(svCursor, 4); stroke(svCursor, Color3.new(0,0,0), 0.2)
 
-			-- Hue bar
 			local hue = create("Frame", {
 				AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 0, 0, 0),
 				Size = UDim2.new(0, 22, 1, 0), BorderSizePixel = 0, Parent = body,
@@ -841,9 +765,6 @@ function Library:CreateWindow(cfg)
 			return api
 		end
 
-		------------------------------------------------------------
-		-- 9. Dropdown (single or multi, inline expand)
-		------------------------------------------------------------
 		function Tab:CreateDropdown(dcfg)
 			dcfg = dcfg or {}
 			local options = dcfg.Options or {}
