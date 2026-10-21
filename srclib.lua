@@ -1,5 +1,4 @@
--- based on vaehz lib
-
+-- based on vaehz lib — recolored to coolgui / c00lkidd red theme
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
@@ -9,17 +8,20 @@ local setClipboard = setclipboard or toclipboard or writeclipboard or write_clip
 	or (syn and syn.write_clipboard) or (Clipboard and Clipboard.set)
 local httpRequest = (syn and syn.request) or (http and http.request) or http_request or request
 
+-- ── c00lkidd / coolgui red theme ─────────────────────────────────────────
 local Theme = {
-	Background = Color3.fromRGB(16, 16, 16),
-	Secondary  = Color3.fromRGB(27, 27, 27),
-	Element    = Color3.fromRGB(34, 34, 34),
-	ElementHover = Color3.fromRGB(42, 42, 42),
-	Off        = Color3.fromRGB(55, 55, 55),
-	Stroke     = Color3.fromRGB(171, 171, 171),
-	Text       = Color3.fromRGB(255, 255, 255),
-	SubText    = Color3.fromRGB(175, 175, 175),
-	Warning    = Color3.fromRGB(255, 190, 70),
-	Accent     = Color3.fromRGB(100, 160, 255),
+	Background   = Color3.fromRGB(10, 6, 8),      -- near-black with red tint
+	Secondary    = Color3.fromRGB(18, 10, 12),    -- dark maroon
+	Element      = Color3.fromRGB(24, 12, 16),    -- element bg
+	ElementHover = Color3.fromRGB(38, 16, 22),    -- hover
+	Off          = Color3.fromRGB(48, 20, 26),    -- toggle off track
+	Stroke       = Color3.fromRGB(220, 40, 60),   -- bright red stroke
+	Text         = Color3.fromRGB(255, 235, 235), -- warm white
+	SubText      = Color3.fromRGB(200, 130, 140), -- muted red-grey
+	Warning      = Color3.fromRGB(255, 90, 70),
+	Accent       = Color3.fromRGB(220, 25, 45),   -- c00lkidd red
+	AccentGlow   = Color3.fromRGB(255, 60, 80),
+	Glow         = Color3.fromRGB(120, 0, 20),    -- shadow glow color
 }
 
 local BUILDER_ICONS = "rbxasset://LuaPackages/Packages/_Index/BuilderIcons/BuilderIcons/BuilderIcons.json"
@@ -28,8 +30,9 @@ local FONT_MAIN  = Font.new("rbxasset://fonts/families/Jura.json", Enum.FontWeig
 
 local TI    = TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 local TI_S  = TweenInfo.new(0.25, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
+local TI_GLOW = TweenInfo.new(0.35, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
 
-local STROKE_T = 0.83
+local STROKE_T = 0.55  -- strokes a bit more visible for that neon look
 
 local function create(class, props, children)
 	local inst = Instance.new(class)
@@ -43,19 +46,24 @@ local function create(class, props, children)
 	return inst
 end
 
+-- Sharper corners (coolgui style) — default 3 instead of 6
 local function corner(parent, r)
-	return create("UICorner", { CornerRadius = UDim.new(0, r or 6), Parent = parent })
+	return create("UICorner", { CornerRadius = UDim.new(0, r or 3), Parent = parent })
 end
 
 local function stroke(parent, color, trans, thick)
 	return create("UIStroke", {
 		Color = color or Theme.Stroke,
-		Transparency = trans or 0.5,
+		Transparency = trans or 0.4,
 		Thickness = thick or 1,
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 		Parent = parent,
 	})
 end
 
+-- Red glow shadow (UIShadow doesn't take Color in vanilla, so we fake with a
+-- red ImageLabel-free approach: a blurred UIGradient frame is overkill, so we
+-- just use a normal shadow tinted via UIShadow if supported, else skip).
 local function addShadow(parent, blur, trans)
 	local ok, shadow = pcall(function()
 		return create("UIShadow", {
@@ -64,6 +72,10 @@ local function addShadow(parent, blur, trans)
 			Parent = parent,
 		})
 	end)
+	if ok and shadow then
+		-- Newer UIShadow supports Color; guard it
+		pcall(function() shadow.Color = Theme.Glow end)
+	end
 	return ok and shadow or nil
 end
 
@@ -190,11 +202,12 @@ function Library:Notify(cfg)
 		ClipsDescendants = true,
 		Parent = NotifHolder,
 	})
-	corner(card, 8)
-	local st = stroke(card, Theme.Stroke, 1)
+	corner(card, 3)
+	local st = stroke(card, Theme.Accent, 1)
+	addShadow(card, 14, 0.55)
 
 	local accent = create("Frame", {
-		BackgroundColor3 = Theme.Accent, BackgroundTransparency = 1,
+		BackgroundColor3 = Theme.AccentGlow, BackgroundTransparency = 1,
 		Size = UDim2.new(0, 3, 1, 0), BorderSizePixel = 0, Parent = card,
 	})
 
@@ -255,28 +268,49 @@ function Library:CreateWindow(cfg)
 		Position = UDim2.new(0.5, 0, 0.5, 0),
 		Size = UDim2.fromOffset(532, 410),
 		BackgroundColor3 = Theme.Background,
-		BackgroundTransparency = 0.05,
+		BackgroundTransparency = 0.02,
 		BorderSizePixel = 0,
 		Parent = ScreenGui,
 	})
-	corner(BG, 6)
-	stroke(BG, Theme.Stroke, 0.5)
-	addShadow(BG, 20, 0.5)
+	corner(BG, 4)
+	local bgStroke = stroke(BG, Theme.Accent, 0.35, 1.5)
+	addShadow(BG, 28, 0.4)
+
+	-- subtle pulsing red glow on the window border (coolgui vibe)
+	task.spawn(function()
+		while BG.Parent do
+			tween(bgStroke, TI_GLOW, { Transparency = 0.7 })
+			task.wait(1.2)
+			tween(bgStroke, TI_GLOW, { Transparency = 0.35 })
+			task.wait(1.2)
+		end
+	end)
 
 	local TopBar = create("Frame", {
 		Name = "TopBar",
 		BackgroundColor3 = Theme.Secondary,
-		BackgroundTransparency = 0.05,
+		BackgroundTransparency = 0,
 		Size = UDim2.new(1, 0, 0, 45),
 		BorderSizePixel = 0,
 		ZIndex = 5,
 		Parent = BG,
 	})
-	stroke(TopBar, Theme.Stroke, STROKE_T)
-	addShadow(TopBar, 10, 0.86)
+	stroke(TopBar, Theme.Accent, STROKE_T)
+	addShadow(TopBar, 12, 0.7)
+
+	-- accent underline on topbar for the coolgui look
+	create("Frame", {
+		Name = "AccentLine",
+		BackgroundColor3 = Theme.Accent,
+		BorderSizePixel = 0,
+		Position = UDim2.new(0, 0, 1, -1),
+		Size = UDim2.new(1, 0, 0, 1),
+		ZIndex = 6,
+		Parent = TopBar,
+	})
 
 	create("TextLabel", {
-		Name = "Title", Text = cfg.Title or "robloxscripts.com",
+		Name = "Title", Text = cfg.Title or "c00lkidd hub",
 		FontFace = FONT_TITLE, TextColor3 = Theme.Text, TextSize = 16,
 		TextXAlignment = Enum.TextXAlignment.Left, TextWrapped = true,
 		BackgroundTransparency = 1, AnchorPoint = Vector2.new(0, 0.5),
@@ -291,14 +325,14 @@ function Library:CreateWindow(cfg)
 			Position = UDim2.new(1, offsetX, 0.5, 0), Size = UDim2.fromOffset(26, 26),
 			Parent = TopBar,
 		})
-		corner(b, 6)
+		corner(b, 3)
 		local ic = icon(iconName, 16, false, Theme.SubText)
 		ic.AnchorPoint = Vector2.new(0.5, 0.5)
 		ic.Position = UDim2.new(0.5, 0, 0.5, 0)
 		ic.Parent = b
 		b.MouseEnter:Connect(function()
 			tween(b, TI, { BackgroundTransparency = 0 })
-			tween(ic, TI, { TextColor3 = hoverColor or Theme.Text })
+			tween(ic, TI, { TextColor3 = hoverColor or Theme.Accent })
 		end)
 		b.MouseLeave:Connect(function()
 			tween(b, TI, { BackgroundTransparency = 1 })
@@ -307,30 +341,30 @@ function Library:CreateWindow(cfg)
 		return b
 	end
 
-	local CloseBtn = ctrlBtn("x", -10, Color3.fromRGB(255, 90, 90))
-	local MinBtn   = ctrlBtn("minus", -42, Theme.Text)
-	
+	local CloseBtn = ctrlBtn("x", -10, Color3.fromRGB(255, 70, 70))
+	local MinBtn   = ctrlBtn("minus", -42, Theme.Accent)
+
 	local MoonBtn = create("TextButton", {
 		Text = "", AutoButtonColor = false, BackgroundColor3 = Theme.Element,
 		BackgroundTransparency = 1, AnchorPoint = Vector2.new(1, 0.5),
 		Position = UDim2.new(1, -74, 0.5, 0), Size = UDim2.fromOffset(26, 26),
 		Parent = TopBar,
 	})
-	corner(MoonBtn, 6)
+	corner(MoonBtn, 3)
 	local moonIcon = icon("moon", 16, false, Theme.SubText)
 	moonIcon.AnchorPoint = Vector2.new(0.5, 0.5)
 	moonIcon.Position = UDim2.new(0.5, 0, 0.5, 0)
 	moonIcon.Parent = MoonBtn
-	
+
 	MoonBtn.MouseEnter:Connect(function()
 		tween(MoonBtn, TI, { BackgroundTransparency = 0 })
-		tween(moonIcon, TI, { TextColor3 = Color3.fromRGB(200, 200, 255) })
+		tween(moonIcon, TI, { TextColor3 = Theme.AccentGlow })
 	end)
 	MoonBtn.MouseLeave:Connect(function()
 		tween(MoonBtn, TI, { BackgroundTransparency = 1 })
 		tween(moonIcon, TI, { TextColor3 = Theme.SubText })
 	end)
-	
+
 	local PROFILE_LINK = "https://robloxscripts.com/user/ramread"
 	MoonBtn.Activated:Connect(function()
 		local copied = copyToClipboard(PROFILE_LINK)
@@ -348,10 +382,10 @@ function Library:CreateWindow(cfg)
 	})
 
 	local TabList = create("ScrollingFrame", {
-		Name = "TabList", BackgroundColor3 = Theme.Secondary, BackgroundTransparency = 0.2,
+		Name = "TabList", BackgroundColor3 = Theme.Secondary, BackgroundTransparency = 0.15,
 		BorderSizePixel = 0, Size = UDim2.new(0, 140, 1, 0),
 		CanvasSize = UDim2.new(), AutomaticCanvasSize = Enum.AutomaticSize.Y,
-		ScrollBarThickness = 3, ScrollBarImageColor3 = Theme.Stroke, ScrollBarImageTransparency = 0.5,
+		ScrollBarThickness = 3, ScrollBarImageColor3 = Theme.Accent, ScrollBarImageTransparency = 0.4,
 		Parent = Body,
 	}, {
 		create("UIListLayout", { Padding = UDim.new(0, 4), SortOrder = Enum.SortOrder.LayoutOrder }),
@@ -365,7 +399,7 @@ function Library:CreateWindow(cfg)
 	})
 
 	create("Frame", {
-		Name = "SideDivider", BackgroundColor3 = Theme.Stroke, BackgroundTransparency = STROKE_T,
+		Name = "SideDivider", BackgroundColor3 = Theme.Accent, BackgroundTransparency = 0.6,
 		BorderSizePixel = 0, Position = UDim2.new(0, 140, 0, 0), Size = UDim2.new(0, 1, 1, 0),
 		ZIndex = 2, Parent = Body,
 	})
@@ -407,7 +441,7 @@ function Library:CreateWindow(cfg)
 			BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 34),
 			Parent = TabList,
 		})
-		corner(btn, 6)
+		corner(btn, 3)
 
 		local ic = icon(tcfg.Icon or "circle", 18, false, Theme.SubText)
 		ic.AnchorPoint = Vector2.new(0, 0.5)
@@ -431,7 +465,7 @@ function Library:CreateWindow(cfg)
 			BackgroundTransparency = 1, BorderSizePixel = 0,
 			Size = UDim2.new(1, 0, 1, 0), CanvasSize = UDim2.new(),
 			AutomaticCanvasSize = Enum.AutomaticSize.Y, ScrollBarThickness = 3,
-			ScrollBarImageColor3 = Theme.Stroke, ScrollBarImageTransparency = 0.5,
+			ScrollBarImageColor3 = Theme.Accent, ScrollBarImageTransparency = 0.4,
 			Parent = pageWrap,
 		}, {
 			create("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }),
@@ -455,7 +489,7 @@ function Library:CreateWindow(cfg)
 			pageWrap.Position = UDim2.new(0.04, 0, 0, 0)
 			tween(pageWrap, TI_S, { GroupTransparency = 0, Position = UDim2.new(0, 0, 0, 0) })
 			tween(btn, TI, { BackgroundTransparency = 0 })
-			tween(ic, TI, { TextColor3 = Theme.Accent })
+			tween(ic, TI, { TextColor3 = Theme.AccentGlow })
 			tween(nameLbl, TI, { TextColor3 = Theme.Text })
 		end
 
@@ -477,8 +511,8 @@ function Library:CreateWindow(cfg)
 				BackgroundColor3 = Theme.Element, Size = UDim2.new(1, 0, 0, height or 34),
 				LayoutOrder = Tab._order, BorderSizePixel = 0, Parent = page,
 			})
-			corner(row, 6)
-			stroke(row, Theme.Stroke, STROKE_T)
+			corner(row, 3)
+			stroke(row, Theme.Accent, STROKE_T)
 			return row
 		end
 
@@ -503,7 +537,7 @@ function Library:CreateWindow(cfg)
 		function Tab:CreateWarning(text)
 			local row = newRow(0)
 			row.AutomaticSize = Enum.AutomaticSize.Y
-			row.BackgroundColor3 = Color3.fromRGB(40, 34, 20)
+			row.BackgroundColor3 = Color3.fromRGB(40, 14, 16)
 			for _, s in row:GetChildren() do if s:IsA("UIStroke") then s.Color = Theme.Warning; s.Transparency = 0.5 end end
 			create("UIPadding", {
 				PaddingTop = UDim.new(0, 9), PaddingBottom = UDim.new(0, 9),
@@ -530,16 +564,23 @@ function Library:CreateWindow(cfg)
 				Text = "", AutoButtonColor = false, BackgroundColor3 = Theme.Element,
 				Size = UDim2.new(1, 0, 0, 36), LayoutOrder = Tab._order, BorderSizePixel = 0, Parent = page,
 			})
-			corner(btnEl, 6); stroke(btnEl, Theme.Stroke, STROKE_T)
-			create("TextLabel", {
+			corner(btnEl, 3); stroke(btnEl, Theme.Accent, STROKE_T)
+			local lbl = create("TextLabel", {
 				BackgroundTransparency = 1, Text = bcfg.Name or "Button",
 				FontFace = FONT_MAIN, TextColor3 = Theme.Text, TextSize = 14,
 				Size = UDim2.new(1, 0, 1, 0), Parent = btnEl,
 			})
-			btnEl.MouseEnter:Connect(function() tween(btnEl, TI, { BackgroundColor3 = Theme.ElementHover }) end)
-			btnEl.MouseLeave:Connect(function() tween(btnEl, TI, { BackgroundColor3 = Theme.Element }) end)
+			btnEl.MouseEnter:Connect(function()
+				tween(btnEl, TI, { BackgroundColor3 = Theme.ElementHover })
+				tween(lbl, TI, { TextColor3 = Theme.AccentGlow })
+			end)
+			btnEl.MouseLeave:Connect(function()
+				tween(btnEl, TI, { BackgroundColor3 = Theme.Element })
+				tween(lbl, TI, { TextColor3 = Theme.Text })
+			end)
 			btnEl.Activated:Connect(function()
 				tween(btnEl, TI, { BackgroundColor3 = Theme.Accent })
+				tween(lbl, TI, { TextColor3 = Theme.Text })
 				task.wait(0.12); tween(btnEl, TI, { BackgroundColor3 = Theme.Element })
 				if bcfg.Callback then task.spawn(bcfg.Callback) end
 			end)
@@ -563,6 +604,7 @@ function Library:CreateWindow(cfg)
 				Size = UDim2.fromOffset(40, 20), BorderSizePixel = 0, Parent = btnEl,
 			})
 			corner(track, 10)
+			stroke(track, Theme.Accent, state and 0.2 or 0.6)
 			local knob = create("Frame", {
 				BackgroundColor3 = Theme.Text, AnchorPoint = Vector2.new(0, 0.5),
 				Position = state and UDim2.new(1, -18, 0.5, 0) or UDim2.new(0, 2, 0.5, 0),
@@ -575,6 +617,9 @@ function Library:CreateWindow(cfg)
 				state = v
 				tween(track, TI, { BackgroundColor3 = state and Theme.Accent or Theme.Off })
 				tween(knob, TI, { Position = state and UDim2.new(1, -18, 0.5, 0) or UDim2.new(0, 2, 0.5, 0) })
+				for _, s in track:GetChildren() do
+					if s:IsA("UIStroke") then tween(s, TI, { Transparency = state and 0.2 or 0.6 }) end
+				end
 				if tocfg.Callback then task.spawn(tocfg.Callback, state) end
 			end
 			function api:Get() return state end
@@ -595,7 +640,7 @@ function Library:CreateWindow(cfg)
 			})
 			local valLbl = create("TextLabel", {
 				BackgroundTransparency = 1, Text = tostring(scfg.Value or "-"),
-				FontFace = FONT_TITLE, TextColor3 = Theme.Accent, TextSize = 14,
+				FontFace = FONT_TITLE, TextColor3 = Theme.AccentGlow, TextSize = 14,
 				TextXAlignment = Enum.TextXAlignment.Right, TextTruncate = Enum.TextTruncate.AtEnd,
 				AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -10, 0.5, 0),
 				Size = UDim2.new(0.5, -10, 1, 0), Parent = row,
@@ -618,7 +663,7 @@ function Library:CreateWindow(cfg)
 			})
 			local valLbl = create("TextLabel", {
 				BackgroundTransparency = 1, Text = tostring(value),
-				FontFace = FONT_TITLE, TextColor3 = Theme.Accent, TextSize = 14,
+				FontFace = FONT_TITLE, TextColor3 = Theme.AccentGlow, TextSize = 14,
 				TextXAlignment = Enum.TextXAlignment.Right, AnchorPoint = Vector2.new(1, 0),
 				Position = UDim2.new(1, -10, 0, 6), Size = UDim2.new(0, 60, 0, 16), Parent = row,
 			})
@@ -639,6 +684,7 @@ function Library:CreateWindow(cfg)
 				Size = UDim2.fromOffset(14, 14), BorderSizePixel = 0, ZIndex = 2, Parent = track,
 			})
 			corner(knob, 7)
+			stroke(knob, Theme.Accent, 0.2)
 
 			local api = {}
 			local function apply(alpha, fire)
@@ -674,8 +720,8 @@ function Library:CreateWindow(cfg)
 			}, {
 				create("UIPadding", { PaddingLeft = UDim.new(0, 7), PaddingRight = UDim.new(0, 7) }),
 			})
-			corner(boxWrap, 5)
-			local tbStroke = stroke(boxWrap, Theme.Stroke, STROKE_T)
+			corner(boxWrap, 3)
+			local tbStroke = stroke(boxWrap, Theme.Accent, 0.5)
 			local tb = create("TextBox", {
 				BackgroundTransparency = 1, Text = txcfg.Default or "",
 				PlaceholderText = txcfg.Placeholder or "...", PlaceholderColor3 = Theme.SubText,
@@ -688,9 +734,9 @@ function Library:CreateWindow(cfg)
 					MaxSize = Vector2.new(txcfg.MaxWidth or 180, math.huge),
 				}),
 			})
-			tb.Focused:Connect(function() tween(tbStroke, TI, { Color = Theme.Accent, Transparency = 0.2 }) end)
+			tb.Focused:Connect(function() tween(tbStroke, TI, { Color = Theme.AccentGlow, Transparency = 0 }) end)
 			tb.FocusLost:Connect(function()
-				tween(tbStroke, TI, { Color = Theme.Stroke, Transparency = STROKE_T })
+				tween(tbStroke, TI, { Color = Theme.Accent, Transparency = 0.5 })
 				if txcfg.Callback then task.spawn(txcfg.Callback, tb.Text) end
 			end)
 			return {
@@ -719,7 +765,7 @@ function Library:CreateWindow(cfg)
 				Position = UDim2.new(1, -10, 0.5, 0), Size = UDim2.fromOffset(34, 18),
 				BorderSizePixel = 0, Parent = header,
 			})
-			corner(swatch, 4); stroke(swatch, Theme.Stroke, 0.4)
+			corner(swatch, 3); stroke(swatch, Theme.Accent, 0.4)
 
 			local body = create("Frame", {
 				BackgroundTransparency = 1, Position = UDim2.new(0, 0, 0, 36),
@@ -731,14 +777,14 @@ function Library:CreateWindow(cfg)
 				BackgroundColor3 = Color3.fromHSV(h, 1, 1), Size = UDim2.new(1, -34, 1, 0),
 				BorderSizePixel = 0, Parent = body,
 			})
-			corner(sv, 4)
+			corner(sv, 3)
 			create("Frame", { BackgroundColor3 = Color3.new(1,1,1), Size = UDim2.new(1,0,1,0), BorderSizePixel = 0, Parent = sv }, {
 				create("UIGradient", { Color = ColorSequence.new(Color3.new(1,1,1)), Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0,0), NumberSequenceKeypoint.new(1,1) }) }),
-				create("UICorner", { CornerRadius = UDim.new(0,4) }),
+				create("UICorner", { CornerRadius = UDim.new(0,3) }),
 			})
 			create("Frame", { BackgroundColor3 = Color3.new(0,0,0), Size = UDim2.new(1,0,1,0), BorderSizePixel = 0, Parent = sv }, {
 				create("UIGradient", { Rotation = 90, Color = ColorSequence.new(Color3.new(0,0,0)), Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0,1), NumberSequenceKeypoint.new(1,0) }) }),
-				create("UICorner", { CornerRadius = UDim.new(0,4) }),
+				create("UICorner", { CornerRadius = UDim.new(0,3) }),
 			})
 			local svCursor = create("Frame", {
 				BackgroundColor3 = Color3.new(1,1,1), AnchorPoint = Vector2.new(0.5, 0.5),
@@ -751,7 +797,7 @@ function Library:CreateWindow(cfg)
 				AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 0, 0, 0),
 				Size = UDim2.new(0, 22, 1, 0), BorderSizePixel = 0, Parent = body,
 			})
-			corner(hue, 4)
+			corner(hue, 3)
 			create("UIGradient", {
 				Rotation = 90,
 				Color = ColorSequence.new({
@@ -856,14 +902,14 @@ function Library:CreateWindow(cfg)
 						Text = "", AutoButtonColor = false, BackgroundColor3 = Theme.Secondary,
 						Size = UDim2.new(1, 0, 0, 28), LayoutOrder = i, BorderSizePixel = 0, Parent = list,
 					})
-					corner(ob, 5)
+					corner(ob, 3)
 					local txt = create("TextLabel", {
 						BackgroundTransparency = 1, Text = opt, FontFace = FONT_MAIN,
-						TextColor3 = selected[opt] and Theme.Accent or Theme.SubText, TextSize = 13,
+						TextColor3 = selected[opt] and Theme.AccentGlow or Theme.SubText, TextSize = 13,
 						TextXAlignment = Enum.TextXAlignment.Left, Position = UDim2.new(0, 8, 0, 0),
 						Size = UDim2.new(1, -30, 1, 0), Parent = ob,
 					})
-					local check = icon("check", 14, false, Theme.Accent)
+					local check = icon("check", 14, false, Theme.AccentGlow)
 					check.AnchorPoint = Vector2.new(1, 0.5)
 					check.Position = UDim2.new(1, -8, 0.5, 0)
 					check.Visible = selected[opt] == true
@@ -880,7 +926,7 @@ function Library:CreateWindow(cfg)
 						for _, b in optionBtns do
 							local on = selected[b.opt] == true
 							b.check.Visible = on
-							tween(b.txt, TI, { TextColor3 = on and Theme.Accent or Theme.SubText })
+							tween(b.txt, TI, { TextColor3 = on and Theme.AccentGlow or Theme.SubText })
 						end
 						updateValLabel()
 						if dcfg.Callback then
@@ -913,7 +959,7 @@ function Library:CreateWindow(cfg)
 				if force ~= nil then open = force else open = not open end
 				if open then list.Visible = true end
 				tween(row, TI_S, { Size = UDim2.new(1, 0, 0, open and openHeight() or 36) })
-				tween(chev, TI, { Rotation = open and 180 or 0 })
+				tween(chev, TI, { Rotation = open and 180 or 0, TextColor3 = open and Theme.AccentGlow or Theme.SubText })
 				if not open then task.delay(0.12, function() if not open then list.Visible = false end end) end
 			end
 			header.Activated:Connect(function() api._toggle() end)
