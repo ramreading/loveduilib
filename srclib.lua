@@ -1,4 +1,3 @@
--- based on vaehz lib — restyled to match "c00lgui Reborn Rc7"
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
@@ -6,14 +5,13 @@ local RunService = game:GetService("RunService")
 local setClipboard = setclipboard or toclipboard or writeclipboard or write_clipboard
 	or (syn and syn.write_clipboard) or (Clipboard and Clipboard.set)
 
--- ── c00lgui Reborn palette ──────────────────────────────────────────
 local Theme = {
-	Background   = Color3.new(0, 0, 0),      -- pure black
-	Secondary    = Color3.new(0, 0, 0),      -- same black (no distinction)
-	Element      = Color3.new(0, 0, 0),      -- buttons are black too
-	ElementHover = Color3.fromRGB(30, 0, 0), -- very dark red on hover
+	Background   = Color3.new(0, 0, 0),
+	Secondary    = Color3.new(0, 0, 0),
+	Element      = Color3.new(0, 0, 0),
+	ElementHover = Color3.fromRGB(30, 0, 0),
 	Off          = Color3.new(0, 0, 0),
-	Border       = Color3.fromRGB(220, 0, 0), -- c00lkidd red (255,0,0 approx)
+	Border       = Color3.fromRGB(220, 0, 0),
 	BorderHover  = Color3.fromRGB(255, 30, 30),
 	Text         = Color3.new(1, 1, 1),
 	SubText      = Color3.fromRGB(220, 220, 220),
@@ -35,7 +33,6 @@ local function create(class, props, children)
 	return inst
 end
 
--- c00lgui style: NO corner, solid 3px border
 local function box(class, props, children)
 	props.BorderSizePixel = BORDER
 	props.BorderColor3    = props.BorderColor3 or Theme.Border
@@ -119,7 +116,6 @@ local ScreenGui = create("ScreenGui", {
 pcall(function() if syn and syn.protect_gui then syn.protect_gui(ScreenGui) end end)
 ScreenGui.Parent = getGuiParent()
 
--- ── Notifications (kept, but restyled square+red) ──────────────────
 local NotifHolder = create("Frame", {
 	Name = "Notifications", BackgroundTransparency = 1,
 	AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -16, 1, -16),
@@ -172,20 +168,6 @@ function Library:Notify(cfg)
 	task.delay(dur, function() card:Destroy() end)
 end
 
--- ═══════════════════════════════════════════════════════════════════
---   Window: c00lgui Reborn layout
---   ┌──────────────────────────────────────────┐
---   │ Title                                    │ 40px
---   ├─────────────────────┬────────────────────┤
---   │        <            │         >          │ 40px (nav)
---   ├──────────────────────────────────────────┤
---   │                                          │
---   │   Page content (2-column button grid)    │
---   │                                          │
---   ├──────────────────────────────────────────┤
---   │               Close                      │ 20px
---   └──────────────────────────────────────────┘
--- ═══════════════════════════════════════════════════════════════════
 function Library:CreateWindow(cfg)
 	cfg = cfg or {}
 
@@ -203,7 +185,6 @@ function Library:CreateWindow(cfg)
 		Parent = ScreenGui,
 	})
 
-	-- Title
 	local Title = box("TextLabel", {
 		Name = "Title", BackgroundColor3 = Theme.Background,
 		Position = UDim2.new(0, 0, 0, 0),
@@ -214,7 +195,6 @@ function Library:CreateWindow(cfg)
 		Parent = BG,
 	})
 
-	-- Nav bar (< | >)
 	local NavLeft = box("TextButton", {
 		Name = "<", BackgroundColor3 = Theme.Background,
 		Position = UDim2.new(0, 0, 0, 43),
@@ -232,7 +212,6 @@ function Library:CreateWindow(cfg)
 		AutoButtonColor = false, Parent = BG,
 	})
 
-	-- Page host
 	local PageHost = create("Frame", {
 		Name = "Pages", BackgroundTransparency = 1,
 		Position = UDim2.new(0, 0, 0, 86),
@@ -240,7 +219,6 @@ function Library:CreateWindow(cfg)
 		Parent = BG,
 	})
 
-	-- Close bar
 	local Close = box("TextButton", {
 		Name = "Close", BackgroundColor3 = Theme.Background,
 		Position = UDim2.new(0, 0, 1, -20),
@@ -249,7 +227,6 @@ function Library:CreateWindow(cfg)
 		TextColor3 = Theme.Text, AutoButtonColor = false, Parent = BG,
 	})
 
-	-- Nav hover styling
 	local function navHover(btn)
 		btn.MouseEnter:Connect(function()
 			tween(btn, { BackgroundColor3 = Theme.ElementHover })
@@ -262,7 +239,6 @@ function Library:CreateWindow(cfg)
 
 	makeDraggable(BG, Title)
 
-	-- Footer close behaviour: toggle between "Close"/"Open"
 	Close.Activated:Connect(function()
 		PageHost.Visible = not PageHost.Visible
 		Close.Text = PageHost.Visible and "Close" or "Open"
@@ -277,14 +253,12 @@ function Library:CreateWindow(cfg)
 		end
 	end)
 
-	-- ── Tab creation (renders inside PageHost) ─────────────────────
 	function Window:CreateTab(tcfg)
 		tcfg = tcfg or {}
 		local Tab = { _order = 0, _left = {}, _right = {} }
 		Window._index += 1
 		local myIndex = Window._index
 
-		-- Each tab is a full-size page inside PageHost
 		local page = create("ScrollingFrame", {
 			Name = tcfg.Name or "Tab",
 			BackgroundTransparency = 1, BorderSizePixel = 0,
@@ -306,7 +280,6 @@ function Library:CreateWindow(cfg)
 			}),
 		})
 
-		-- Left/right column controllers for the 2-column grid
 		local rowCount = 0
 		local function nextSlot(side)
 			rowCount += (side == "left" and 1 or 0)
@@ -327,14 +300,10 @@ function Library:CreateWindow(cfg)
 			el.Position = UDim2.new(0, 0, 0, 0)
 			if side == "left" then Tab._left[#Tab._left + 1] = row
 			else Tab._right[#Tab._right + 1] = row end
-			-- position within the row-based grid
-			row.Position = UDim2.new(0, 0, 0, 0) -- auto by UIListLayout
-			-- set horizontal position via anchor inside layout: use UIListLayout on page + child row containing single button is fine
+			row.Position = UDim2.new(0, 0, 0, 0)
 			return row
 		end
 
-		-- Actual grid: use a single UIListLayout, but place elements via
-		-- "left/right" pairing — simplest robust approach is a UIGridLayout.
 		page:ClearAllChildren()
 		local grid = create("UIGridLayout", {
 			CellSize = UDim2.new(0.5, -2, 0, 32),
@@ -348,7 +317,6 @@ function Library:CreateWindow(cfg)
 			Parent = page,
 		})
 
-		-- Select tab
 		local function select()
 			if Window._current == Tab then return end
 			for _, t in Window.Tabs do t._page.Visible = false end
@@ -360,7 +328,6 @@ function Library:CreateWindow(cfg)
 		table.insert(Window.Tabs, Tab)
 		if #Window.Tabs == 1 then select() end
 
-		-- Nav buttons cycle tabs
 		NavRight.Activated:Connect(function()
 			local idx = table.find(Window.Tabs, Window._current)
 			Window.Tabs[((idx or 1) % #Window.Tabs) + 1]._page.Visible = true
@@ -376,7 +343,6 @@ function Library:CreateWindow(cfg)
 			Window._current = Window.Tabs[newIdx]
 		end)
 
-		-- ── Element helpers (all solid black + red border) ──────────
 		local function push(el)
 			Tab._order += 1
 			el.LayoutOrder = Tab._order
@@ -405,7 +371,6 @@ function Library:CreateWindow(cfg)
 			return b
 		end
 
-		-- ── Public Tab methods ──────────────────────────────────────
 		function Tab:CreateLabel(text)
 			return {
 				Set = function(_, t) end,
@@ -428,7 +393,6 @@ function Library:CreateWindow(cfg)
 				Text = tocfg.Name or "Toggle",
 				TextColor3 = Theme.Text, AutoButtonColor = false,
 			})
-			-- on state: red border already there; add "ON" indicator
 			local ind = create("TextLabel", {
 				BackgroundTransparency = 1,
 				AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -8, 0.5, 0),
@@ -636,7 +600,6 @@ function Library:CreateWindow(cfg)
 		end
 
 		function Tab:CreateColorPicker(ccfg)
-			-- Very compact, c00lgui didn't have this so we build a simple one
 			ccfg = ccfg or {}
 			local color = ccfg.Default or Color3.fromRGB(255, 0, 0)
 			local f = box("Frame", { BackgroundColor3 = Theme.Background })
